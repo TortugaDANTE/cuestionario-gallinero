@@ -1,0 +1,9 @@
+.DS_Store
+*.log
+node_modules/
+.firebase/
+preview.*
+assets/logo_*.b64
+assets/logo_b64.txt
+assets/logo_embed.b64
+assets/logo_kit_src.png
