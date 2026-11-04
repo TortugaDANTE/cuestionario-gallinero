@@ -105,6 +105,11 @@ button.btn:disabled{opacity:.4;cursor:not-allowed}
   font-size:1.05rem;font-weight:600;margin:16px 0;background:var(--gris);
 }
 .consent input{width:28px;height:28px;min-width:28px;accent-color:var(--naranja);margin-top:2px}
+.aviso{border:3px solid var(--negro);margin:16px 0;background:var(--blanco);font-size:1.05rem}
+.aviso summary{cursor:pointer;padding:14px;font-weight:800;font-size:1.1rem}
+.aviso .aviso-body{padding:0 14px 14px;line-height:1.5}
+.aviso .aviso-body p{margin:8px 0}
+.aviso a{color:var(--negro);font-weight:800}
 .err{color:#B00000;font-weight:700;font-size:1rem;margin:8px 0;display:none}
 .foot-note{font-size:.9rem;margin-top:20px;color:var(--negro);opacity:.85;text-align:center}
 @media (min-width:480px){
@@ -148,6 +153,17 @@ button.btn:disabled{opacity:.4;cursor:not-allowed}
     <input type="checkbox" name="consentimiento" id="consentimiento" required>
     <span>Acepto que MIA Global Consulting y Fundación Armadillo usen mis respuestas para diseñar el proyecto y medir sus resultados, y que me contacten para invitarme. <span class="req">*</span></span>
   </label>
+  <details class="aviso">
+    <summary>Aviso de privacidad simplificado (toque para leer)</summary>
+    <div class="aviso-body">
+      <p><b>Responsable:</b> MIA Global Consulting es responsable de sus datos personales.</p>
+      <p><b>Datos que pedimos:</b> nombre, teléfono o WhatsApp, fecha, correo (opcional) y sus respuestas a este cuestionario.</p>
+      <p><b>Para qué los usamos:</b> diseñar el proyecto comunitario del gallinero, medir sus resultados y contactarle para invitarle a participar.</p>
+      <p><b>Transferencias:</b> no compartimos sus datos con terceros, salvo con Fundación Armadillo, socia del proyecto, para los mismos fines.</p>
+      <p><b>Seguridad:</b> sus datos se guardan de forma segura y solo personal autorizado puede consultarlos. No se guarda copia en este teléfono.</p>
+      <p><b>Sus derechos:</b> puede acceder, rectificar, cancelar u oponerse al uso de sus datos (derechos ARCO), o retirar su consentimiento, escribiendo a <a href="mailto:danae@miaglobalconsulting.com">danae@miaglobalconsulting.com</a>.</p>
+    </div>
+  </details>
   <p class="err" id="err0">Complete los campos obligatorios y acepte el consentimiento.</p>
 </section>
 
@@ -494,7 +510,6 @@ button.btn:disabled{opacity:.4;cursor:not-allowed}
     btnSubmit.hidden = !lastForm;
     nav.style.display = thanks ? 'none' : 'block';
     window.scrollTo({top:0, behavior:'smooth'});
-    saveDraft();
   }
 
   function validateStep0(){
@@ -592,86 +607,28 @@ button.btn:disabled{opacity:.4;cursor:not-allowed}
 
   btnSubmit.addEventListener('click', async () => {
     const data = collect({ prueba: false });
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    try {
-      const hist = JSON.parse(localStorage.getItem(STORAGE_KEY + '_historial') || '[]');
-      hist.push(data);
-      localStorage.setItem(STORAGE_KEY + '_historial', JSON.stringify(hist.slice(-50)));
-    } catch(e){}
     step = TOTAL - 1;
     updateUI();
     const st = document.getElementById('cloudStatus');
     try {
       await enviarNube(data);
       if (st) st.textContent = 'Respuestas guardadas en la nube ✓';
-      localStorage.removeItem(STORAGE_KEY + '_draft');
     } catch (e) {
       console.error(e);
       if (st) st.textContent = 'No se pudieron enviar sus respuestas por falta de conexión. Por favor, inténtelo de nuevo más tarde.';
-      try {
-        const q = JSON.parse(localStorage.getItem(STORAGE_KEY + '_pendientes') || '[]');
-        q.push(data);
-        localStorage.setItem(STORAGE_KEY + '_pendientes', JSON.stringify(q));
-      } catch(e2){}
     }
   });
 
-  function saveDraft(){
-    try { localStorage.setItem(STORAGE_KEY + '_draft', JSON.stringify(collect())); } catch(e){}
-  }
-
-  function restoreDraft(){
+  // Limpieza: borrar datos que versiones anteriores guardaban en el teléfono.
+  function limpiarAlmacenLocal(){
     try {
-      const raw = localStorage.getItem(STORAGE_KEY + '_draft');
-      if (!raw) return;
-      const d = JSON.parse(raw);
-      if (d.nombre) document.getElementById('nombre').value = d.nombre;
-      if (d.telefono) document.getElementById('telefono').value = d.telefono;
-      if (d.fecha) document.getElementById('fecha').value = d.fecha;
-      if (d.correo) document.getElementById('correo').value = d.correo;
-      if (d.consentimiento === 'Sí') document.getElementById('consentimiento').checked = true;
-      const map = {
-        q1:d.q1_rango_edad, q2:d.q2_usted_es, q5:d.q5_sabia_gallinero,
-        q7:d.q7_frecuencia_huevo, q8:d.q8_donde_compra, q9:d.q9_importa_origen,
-        q11:d.q11_compraria_huevo, q12:d.q12_gallinero_casa, q14:d.q14_participaria,
-        q16:d.q16_tiempo, q19:d.q19_aviso, q20:d.q20_opinion_tomada
-      };
-      for (const [name,val] of Object.entries(map)){
-        if (!val) continue;
-        const el = form.querySelector('input[name="'+name+'"][value="'+CSS.escape(val)+'"]');
-        if (el) el.checked = true;
-      }
-      const texts = {
-        q2_otro:d.q2_otro, q3:d.q3_tiempo_aqui, q4:d.q4_personas_hogar,
-        q6:d.q6_experiencia_aves, q8_otro:d.q8_otro, q10_otro:d.q10_otro,
-        q13_otro:d.q13_otro, q17:d.q17_dias_horarios, q18_otro:d.q18_otro,
-        q19_otro:d.q19_otro, q21:d.q21_nombre_gallinero, q22:d.q22_algo_mas
-      };
-      for (const [id,val] of Object.entries(texts)){
-        if (val && document.getElementById(id)) document.getElementById(id).value = val;
-      }
-      const multi = {
-        q10:d.q10_que_daria_comunidad, q13:d.q13_preocupaciones,
-        q15:d.q15_formas, q18:d.q18_ayudaria
-      };
-      for (const [name,val] of Object.entries(multi)){
-        if (!val) continue;
-        val.split('; ').forEach(v => {
-          const el = form.querySelector('input[name="'+name+'"][value="'+CSS.escape(v)+'"]');
-          if (el) el.checked = true;
-        });
-      }
-      document.querySelectorAll('input[data-otro]').forEach(inp => {
-        const target = inp.getAttribute('data-otro');
-        const wrap = document.getElementById('wrap_' + target);
-        if (inp.checked && wrap) wrap.hidden = false;
+      [localStorage, sessionStorage].forEach(st => {
+        Object.keys(st).filter(k => k.indexOf(STORAGE_KEY) === 0).forEach(k => st.removeItem(k));
       });
     } catch(e){}
   }
 
-  form.addEventListener('change', saveDraft);
-  form.addEventListener('input', saveDraft);
-  restoreDraft();
+  limpiarAlmacenLocal();
   updateUI();
 })();
 </script></script>
