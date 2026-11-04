@@ -424,10 +424,8 @@ button.btn:disabled{opacity:.4;cursor:not-allowed}
   <div class="thanks">
     <h2>¡Gracias por ser parte!</h2>
     <p id="cloudStatus">Guardando en la nube…</p>
-    <p>También puede descargarlas en Excel (CSV) y/o enviarlas por WhatsApp.</p>
+    <p>Sus respuestas nos ayudan a construir un gallinero pensado por y para la comunidad.</p>
   </div>
-  <button type="button" class="btn btn-csv" id="btnCsv">Descargar mis respuestas (CSV / Excel)</button>
-  <a class="btn-wa" id="btnWa" href="#" target="_blank" rel="noopener">Enviar por WhatsApp al 4441749695</a>
   <p class="foot-note">MIA Global Consulting · Fundación Armadillo<br>Cuestionario comunitario: el gallinero que queremos</p>
 </section>
 
@@ -447,7 +445,6 @@ button.btn:disabled{opacity:.4;cursor:not-allowed}
   const TOTAL = 7;
   let step = 0;
   const STORAGE_KEY = 'mia_cuestionario_gallinero_v1';
-  const WA_NUM = '524441749695';
   const MIA_SDK = 'https://www.gstatic.com/firebasejs/10.14.1/';
   const FIREBASE = {
     apiKey: "AIzaSyC0Am2lMsrT81NnAjUpcDC42i20jDecoUg",
@@ -593,55 +590,6 @@ button.btn:disabled{opacity:.4;cursor:not-allowed}
     await f.setDoc(f.doc(db, COL, data.id), d);
   }
 
-  function csvEscape(s){
-    s = String(s ?? '');
-    if (/[",\n\r]/.test(s)) return '"' + s.replace(/"/g,'""') + '"';
-    return s;
-  }
-  function toCSV(data){
-    const keys = Object.keys(data).filter(k => k !== 'creado');
-    return '\uFEFF' + keys.map(csvEscape).join(',') + '\n' + keys.map(k => csvEscape(data[k])).join(',') + '\n';
-  }
-  function toWaText(data){
-    const labels = {
-      nombre:'Nombre', telefono:'Teléfono', fecha:'Fecha', correo:'Correo',
-      consentimiento:'Consentimiento',
-      q1_rango_edad:'1 Edad', q2_usted_es:'2 Usted es', q2_otro:'2 Otro',
-      q3_tiempo_aqui:'3 Tiempo aquí', q4_personas_hogar:'4 Personas hogar',
-      q5_sabia_gallinero:'5 Sabía gallinero', q6_experiencia_aves:'6 Experiencia aves',
-      q7_frecuencia_huevo:'7 Frecuencia huevo', q8_donde_compra:'8 Dónde compra', q8_otro:'8 Otro',
-      q9_importa_origen:'9 Importa origen',
-      q10_que_daria_comunidad:'10 Qué diera comunidad', q10_otro:'10 Otro',
-      q11_compraria_huevo:'11 Compraría huevo', q12_gallinero_casa:'12 Gallinero en casa',
-      q13_preocupaciones:'13 Preocupaciones', q13_otro:'13 Otro',
-      q14_participaria:'14 Participaría', q15_formas:'15 Formas', q16_tiempo:'16 Tiempo',
-      q17_dias_horarios:'17 Días/horarios', q18_ayudaria:'18 Ayudaría a participar', q18_otro:'18 Otro',
-      q19_aviso:'19 Aviso', q19_otro:'19 Otro', q20_opinion_tomada:'20 Opinión tomada en cuenta',
-      q21_nombre_gallinero:'21 Nombre gallinero', q22_algo_mas:'22 Algo más'
-    };
-    let lines = ['*Cuestionario comunitario · gallinero*','*MIA · Fundación Armadillo*',''];
-    for (const [k,label] of Object.entries(labels)){
-      const v = data[k];
-      if (v) lines.push('*' + label + ':* ' + v);
-    }
-    return lines.join('\n');
-  }
-
-  function prepareDownloads(data){
-    const csv = toCSV(data);
-    const blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
-    const url = URL.createObjectURL(blob);
-    const btn = document.getElementById('btnCsv');
-    btn.onclick = () => {
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'respuestas_gallinero_' + (data.fecha || 'hoy') + '.csv';
-      a.click();
-    };
-    const wa = document.getElementById('btnWa');
-    wa.href = 'https://wa.me/' + WA_NUM + '?text=' + encodeURIComponent(toWaText(data));
-  }
-
   btnSubmit.addEventListener('click', async () => {
     const data = collect({ prueba: false });
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
@@ -650,7 +598,6 @@ button.btn:disabled{opacity:.4;cursor:not-allowed}
       hist.push(data);
       localStorage.setItem(STORAGE_KEY + '_historial', JSON.stringify(hist.slice(-50)));
     } catch(e){}
-    prepareDownloads(data);
     step = TOTAL - 1;
     updateUI();
     const st = document.getElementById('cloudStatus');
@@ -660,7 +607,7 @@ button.btn:disabled{opacity:.4;cursor:not-allowed}
       localStorage.removeItem(STORAGE_KEY + '_draft');
     } catch (e) {
       console.error(e);
-      if (st) st.textContent = 'Guardado en este teléfono. La nube no respondió; use CSV o WhatsApp.';
+      if (st) st.textContent = 'No se pudieron enviar sus respuestas por falta de conexión. Por favor, inténtelo de nuevo más tarde.';
       try {
         const q = JSON.parse(localStorage.getItem(STORAGE_KEY + '_pendientes') || '[]');
         q.push(data);
